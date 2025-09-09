@@ -1,103 +1,189 @@
-import Image from "next/image";
+"use client";
+import { CopyButton } from "@/components/copy-button";
+import { SettingsForm } from "@/components/header";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { useReadLocalStorage } from "usehooks-ts";
+
+const TODAY = new Date();
+const CURRENT_MONTH = TODAY.getMonth();
+const PERSON = "Alex Alan Nunes de Lima";
+const YEAR = TODAY.getFullYear();
+
+// valid if any var does not match with this vars
+const AVAILABLE_VARS = [
+  "{CONTA}",
+  "{SALARIO}",
+  "{PIX}",
+  "{MES_ANO}",
+  "{EMPRESA}",
+];
+
+// NEVER EXPOSE THIS
+const ACCOUNT = {
+  bank: "Nu Pagamentos S.A",
+  agency: "0001",
+  account: "7751782-8",
+  pix: {
+    bank: "Nubank",
+    key: "055.585.283-03",
+    owner: PERSON,
+  },
+};
+
+const MONTHS = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+];
+
+const MONTH_LABEL = `${MONTHS[CURRENT_MONTH]}/${YEAR}`;
+
+interface NFFormData {
+  email: string;
+  subject: string;
+  body: string;
+}
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const settings = useReadLocalStorage<Partial<SettingsForm>>(
+    "minha-nota:settings"
+  );
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+  const form = useForm<NFFormData>({
+    defaultValues: {
+      email: "",
+      subject: "",
+      body: "",
+    },
+  });
+
+  useEffect(() => {
+    console.log("oi");
+
+    if (Object.keys(settings || {})) {
+      const newSubject = settings?.subject
+        ?.replace("{MES_ANO}", MONTH_LABEL)
+        .replace("{EMPRESA}", settings?.company || "<SEU_NOME>");
+
+      const amount = new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      }).format(Number(settings?.amount ?? 0));
+
+      let bodyRaw =
+        settings?.body
+          ?.replace("{MES_ANO}", MONTH_LABEL)
+          .replace("{SALARIO}", amount) || "";
+
+      settings?.bank_accounts?.forEach((account, index) => {
+        const regex = new RegExp(
+          `{CONTA_${(index + 1).toString().padStart(2, "0")}}`,
+          "mg"
+        );
+
+        bodyRaw = bodyRaw?.replace(
+          regex,
+          `${account.agency}\n${account.number}\n${account.name}`
+        );
+      });
+
+      settings?.pix?.forEach((pix, index) => {
+        const regex = new RegExp(
+          `{PIX_${(index + 1).toString().padStart(2, "0")}}`,
+          "mg"
+        );
+
+        bodyRaw = bodyRaw?.replace(
+          regex,
+          `${pix.key}\n${pix.bank}\n${pix.owner}`
+        );
+      });
+
+      form.setValue("email", settings?.email ?? "");
+      form.setValue("subject", newSubject ?? "");
+      form.setValue("body", bodyRaw ?? "");
+    }
+  }, [form, settings]);
+
+  // try use effect
+  return (
+    <div className="font-sans max-w-xl mx-auto pt-10 px-3 sm:px-0">
+      <Form {...form}>
+        <form className="space-y-6">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Destinatátio</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Input {...field} />
+                    <CopyButton text={field.value} />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+          <FormField
+            control={form.control}
+            name="subject"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Assunto</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Input {...field} />
+                    <CopyButton text={field.value} />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
+
+          <FormField
+            control={form.control}
+            name="body"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mensagem</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Textarea className="h-80" {...field} />
+                    <CopyButton
+                      text={field.value}
+                      className="top-1 translate-0"
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        </form>
+      </Form>
     </div>
   );
 }
