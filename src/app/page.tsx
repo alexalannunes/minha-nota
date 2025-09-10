@@ -17,20 +17,7 @@ import { useReadLocalStorage } from "usehooks-ts";
 
 const TODAY = new Date();
 const CURRENT_MONTH = TODAY.getMonth();
-const PERSON = "Alex Alan Nunes de Lima";
 const YEAR = TODAY.getFullYear().toString();
-
-// NEVER EXPOSE THIS
-const ACCOUNT = {
-  bank: "Nu Pagamentos S.A",
-  agency: "0001",
-  account: "7751782-8",
-  pix: {
-    bank: "Nubank",
-    key: "055.585.283-03",
-    owner: PERSON,
-  },
-};
 
 const MONTHS = [
   "Janeiro",
@@ -109,6 +96,8 @@ export default function Home() {
           `${pix.key}\n${pix.bank}\n${pix.owner}`
         );
       });
+
+      // TODO: validate vars before set subject/body value
 
       form.setValue("email", settings?.email ?? "");
       form.setValue("subject", newSubject ?? "");
