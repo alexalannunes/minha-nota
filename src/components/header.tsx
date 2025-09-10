@@ -31,7 +31,13 @@ import { cn } from "@/lib/utils";
 import { useLocalStorage } from "usehooks-ts";
 import { toast } from "sonner";
 import { Textarea } from "./ui/textarea";
-import { ChangeEvent, ComponentProps, useEffect, useState } from "react";
+import {
+  ChangeEvent,
+  ComponentProps,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 const moneyFormatter = Intl.NumberFormat("pt-BR", {
   currency: "BRL",
@@ -73,6 +79,9 @@ function CurrencyInput({
   );
 }
 
+// valid if any var does not match with this vars
+const AVAILABLE_VARS = [/\{SALARIO\}/, /\{MES\}/, /\{ANO\}/, /\{EMPRESA\}/];
+
 const settingsSchema = z.object({
   email: z.string().nonempty("Obrigatório"),
   company: z.string().nonempty("Obrigatório"),
@@ -102,8 +111,6 @@ export function Header() {
     "minha-nota:settings",
     {}
   );
-
-  console.log(settings);
 
   const form = useForm<SettingsForm>({
     defaultValues: {
@@ -159,10 +166,49 @@ export function Header() {
     });
   };
 
+  const accounts = form.watch("bank_accounts") || [];
+  const pixs = form.watch("pix") || [];
+
+  const dynamicVars = [
+    ...accounts.map(
+      (_, index) =>
+        new RegExp(`\\{CONTA_${(index + 1).toString().padStart(2, "0")}\\}`)
+    ),
+    ...pixs.map(
+      (_, index) =>
+        new RegExp(`\\{PIX_${(index + 1).toString().padStart(2, "0")}\\}`)
+    ),
+    ...AVAILABLE_VARS,
+  ];
+
+  const subjectAndBody = form.watch(["subject", "body"]).join("");
+
+  const allUsersVars = subjectAndBody.match(/\{.*?\}/g) || [];
+  // get unclosed vars
+  const unclosedUserVars = [...subjectAndBody.matchAll(/\{[^}]*?(?=$|\{)/g)]
+    .map((m) => m[0])
+    .filter((item) => !item.endsWith("}"));
+
+  const normalized = [...unclosedUserVars, ...allUsersVars];
+
+  const invalidVars = normalized.filter((item) => {
+    return !dynamicVars.some((reg) => reg.test(item));
+  });
+
+  const invalidVarsMessage = useMemo(() => {
+    if (invalidVars.length === 1) {
+      return `${invalidVars[0]} náo é valido`;
+    }
+    if (invalidVars.length > 1) {
+      return `${invalidVars.join(", ")} náo são válidos`;
+    }
+    return null;
+  }, [invalidVars]);
+
   return (
     <div className="h-14 shadow items-center flex justify-between px-3">
       <h1 className="font-semibold">minha-nota</h1>
-      {/* in mobile use drawer */}
+      {/* in mobile use drawer(vaul) */}
       <Sheet>
         <SheetTrigger asChild>
           <Button size={"icon"} variant={"outline"}>
@@ -246,7 +292,7 @@ export function Header() {
                       <FormControl>
                         <Textarea {...field} />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage>{invalidVarsMessage}</FormMessage>
                     </FormItem>
                   )}
                 />
@@ -449,7 +495,9 @@ export function Header() {
               <div className="h-10 flex items-center">
                 <Button
                   type="submit"
-                  disabled={!form.formState.isValid}
+                  disabled={
+                    !form.formState.isValid || Boolean(invalidVarsMessage)
+                  }
                   className="ml-auto"
                 >
                   Salvar

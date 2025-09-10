@@ -18,16 +18,7 @@ import { useReadLocalStorage } from "usehooks-ts";
 const TODAY = new Date();
 const CURRENT_MONTH = TODAY.getMonth();
 const PERSON = "Alex Alan Nunes de Lima";
-const YEAR = TODAY.getFullYear();
-
-// valid if any var does not match with this vars
-const AVAILABLE_VARS = [
-  "{CONTA}",
-  "{SALARIO}",
-  "{PIX}",
-  "{MES_ANO}",
-  "{EMPRESA}",
-];
+const YEAR = TODAY.getFullYear().toString();
 
 // NEVER EXPOSE THIS
 const ACCOUNT = {
@@ -56,7 +47,7 @@ const MONTHS = [
   "Dezembro",
 ];
 
-const MONTH_LABEL = `${MONTHS[CURRENT_MONTH]}/${YEAR}`;
+const MONTH_LABEL = `${MONTHS[CURRENT_MONTH]}`;
 
 interface NFFormData {
   email: string;
@@ -78,11 +69,10 @@ export default function Home() {
   });
 
   useEffect(() => {
-    console.log("oi");
-
     if (Object.keys(settings || {})) {
       const newSubject = settings?.subject
-        ?.replace("{MES_ANO}", MONTH_LABEL)
+        ?.replace("{MES}", MONTH_LABEL)
+        .replace("{ANO}", YEAR)
         .replace("{EMPRESA}", settings?.company || "<SEU_NOME>");
 
       const amount = new Intl.NumberFormat("pt-BR", {
@@ -92,7 +82,8 @@ export default function Home() {
 
       let bodyRaw =
         settings?.body
-          ?.replace("{MES_ANO}", MONTH_LABEL)
+          ?.replace("{MES}", MONTH_LABEL)
+          .replace("{ANO}", YEAR)
           .replace("{SALARIO}", amount) || "";
 
       settings?.bank_accounts?.forEach((account, index) => {
