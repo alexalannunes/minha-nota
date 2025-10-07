@@ -18,5 +18,9 @@ Template de e-mail para @pagamentos
 `{PIX_XX}` - PIX (XX = 01, 02, 02, ...999}
 
 
-https://github.com/user-attachments/assets/f76cb262-dd62-4a04-bcb4-4f27fe9e9cf5
+
+
+https://github.com/user-attachments/assets/7ea35143-3273-4cb5-8bec-c70e6210c2b8
+
+
 
